@@ -23,6 +23,7 @@
       "type": "string",
       "required": true
     },
+    "emailCaeSensitive": "boolean",
     "emailVerified": "boolean",
     "verificationToken": "string",
     "status": "string",

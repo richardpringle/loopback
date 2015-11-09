@@ -58,6 +58,7 @@ var debug = require('debug')('loopback:user');
  * @property {String} settings.realmDelimiter When set a realm is required.
  * @property {Number} settings.resetPasswordTokenTTL Time to live for password reset `AccessToken`. Default is `900` (15 minutes).
  * @property {Number} settings.saltWorkFactor The `bcrypt` salt work factor. Default is `10`.
+ * @property {Boolean} settings.caseSensitiveEmail Enable case sensitive email.
  *
  * @class User
  * @inherits {PersistedModel}
@@ -119,11 +120,12 @@ module.exports = function(User) {
    * @returns {Object} The normalized credential object
    */
   User.normalizeCredentials = function(credentials, realmRequired, realmDelimiter) {
+    var caseSensitiveEmail = this.settings.caseSensitiveEmail;
     var query = {};
     credentials = credentials || {};
     if (!realmRequired) {
       if (credentials.email) {
-        query.email = credentials.email;
+        query.email = caseSensitiveEmail ? credentials.email : credentials.email.toLowerCase();
       } else if (credentials.username) {
         query.username = credentials.username;
       }
@@ -134,7 +136,7 @@ module.exports = function(User) {
       var parts;
       if (credentials.email) {
         parts = splitPrincipal(credentials.email, realmDelimiter);
-        query.email = parts[1];
+        query.email = caseSensitiveEmail ? parts[1] : parts[1].toLowerCase();
         if (parts[0]) {
           query.realm = parts[0];
         }
@@ -572,6 +574,19 @@ module.exports = function(User) {
     // max ttl
     this.settings.maxTTL = this.settings.maxTTL || DEFAULT_MAX_TTL;
     this.settings.ttl = this.settings.ttl || DEFAULT_TTL;
+
+    // user email case sensitivity default to true
+    if (this.settings.caseSensitiveEmail === undefined) {
+      this.settings.caseSensitiveEmail = true;
+    }
+
+    UserModel.setter.email = function (value) {
+      if (!UserModel.settings.caseSensitiveEmail) {
+        this.$email = value.toLowerCase();
+      } else {
+        this.$email = value;
+      }
+    }
 
     UserModel.setter.password = function(plain) {
       if (typeof plain !== 'string') {
